@@ -118,15 +118,19 @@ body.has-tool-options #viewerContainer { top: calc(var(--toolbar-h) + 34px); }
 .page .canvasWrapper { position: absolute; inset: 0; overflow: hidden; }
 .page canvas { display: block; }
 
-/* Couches d'édition (z-index : canvas 0 < surlignage 1 < texte 2 < annotations 3 < pointillés 4 < éditions 5) */
+/* Couches d'édition (z-index : canvas 0 < texte 2 < surlignage 3 < annotations 3 < pointillés 4 < éditions 5) */
 .page > .textLayer { z-index: 2; }
 .page > .annotationLayer { z-index: 3; }
-.highlightLayer, .dotZones, .editLayer {
+.dotZones, .editLayer {
   position: absolute;
   inset: 0;
   pointer-events: none;
 }
-.highlightLayer { z-index: 1; }
+/* Le conteneur de surlignage ne doit PAS créer de contexte d'empilement :
+   mix-blend-mode serait isolé et ne fusionnerait plus avec le canvas en
+   dessous (jaune opaque). Conteneur statique de taille nulle ; chaque rect,
+   positionné par rapport à .page, porte lui-même z-index et blending. */
+.highlightLayer { position: static; }
 .dotZones { z-index: 4; }
 .editLayer { z-index: 5; }
 
@@ -175,8 +179,27 @@ body[data-tool="select"] .edit-whiteout:not(.selected):hover {
   outline: 1px dashed rgba(0, 0, 0, 0.35);
 }
 
-.highlight-rect { position: absolute; mix-blend-mode: multiply; }
+.highlight-rect {
+  position: absolute;
+  z-index: 3;
+  mix-blend-mode: multiply;
+}
+.highlightLayer .edit-box.selected .highlight-rect { outline: 1.6px solid #1a73e8; }
+
+.rubber-band {
+  position: absolute;
+  z-index: 6;
+  pointer-events: none;
+  border: 1.2px dashed #1a73e8;
+  background: rgba(26, 115, 232, 0.08);
+}
+.rubber-band.rubber-highlight {
+  border-color: #b99b00;
+  background: rgba(255, 235, 59, 0.35);
+}
+.rubber-band.rubber-whiteout { background: rgba(255, 255, 255, 0.85); }
 .highlightLayer .edit-box { pointer-events: none; position: static; }
+.highlightLayer .highlight-rect { pointer-events: none; }
 body[data-tool="select"] .highlightLayer .highlight-rect { pointer-events: auto; cursor: pointer; }
 
 /* Interactions par outil : les objets laissent passer les clics des outils de pose */

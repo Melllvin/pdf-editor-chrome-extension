@@ -24,6 +24,8 @@ import { Overlay } from './overlay/overlay.js';
 import { ToolManager } from './tools/tool-manager.js';
 import { SelectTool } from './tools/select-tool.js';
 import { TextTool } from './tools/text-tool.js';
+import { HighlightTool } from './tools/highlight-tool.js';
+import { WhiteoutTool } from './tools/whiteout-tool.js';
 import { exportPdf, download, suggestName } from './save/exporter.js';
 
 const $ = (id) => document.getElementById(id);
@@ -74,6 +76,8 @@ function setupEditing() {
   };
   app.toolManager.register('select', new SelectTool(toolCtx));
   app.toolManager.register('text', new TextTool(toolCtx));
+  app.toolManager.register('highlight', new HighlightTool(toolCtx));
+  app.toolManager.register('whiteout', new WhiteoutTool(toolCtx));
   app.toolManager.setTool('select');
   bindEditing({ toolManager: app.toolManager, stack: app.stack });
 
