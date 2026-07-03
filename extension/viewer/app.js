@@ -103,6 +103,65 @@ function setupEditing() {
   const saveBtn = $('btnSave');
   saveBtn.disabled = false;
   saveBtn.onclick = saveDocument;
+  const printBtn = $('btnPrint');
+  printBtn.disabled = false;
+  printBtn.onclick = printDocument;
+}
+
+let printFrame = null;
+
+/**
+ * Imprime le PDF ÉDITÉ : export pdf-lib → blob dans un iframe caché →
+ * impression par le lecteur PDF natif (pleine qualité vectorielle).
+ * La règle DNR ne touche pas les sous-frames blob:.
+ */
+async function printDocument() {
+  if (!app.pdfDocument || !app.originalBytes) return;
+  document.querySelector('.edit-box.editing')?.blur();
+  document.activeElement?.blur?.();
+  showLoading(STR.saving);
+  try {
+    const { bytes } = await exportPdf({
+      originalBytes: app.originalBytes,
+      edits: app.store.all(),
+      formValues: await collectFormValues(app.pdfDocument),
+    });
+    if (printFrame) {
+      URL.revokeObjectURL(printFrame.src);
+      printFrame.remove();
+    }
+    const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+    printFrame = document.createElement('iframe');
+    printFrame.id = 'printFrame';
+    Object.assign(printFrame.style, {
+      position: 'fixed',
+      right: '0',
+      bottom: '0',
+      width: '2px',
+      height: '2px',
+      opacity: '0',
+      border: '0',
+    });
+    printFrame.src = url;
+    printFrame.addEventListener('load', () => {
+      hideLoading();
+      // petit délai : le lecteur PDF du sous-frame finit de s'initialiser
+      setTimeout(() => {
+        try {
+          printFrame.contentWindow.print();
+        } catch (err) {
+          console.warn('Impression :', err);
+        }
+      }, 400);
+    });
+    document.body.append(printFrame);
+    // filet si load ne vient jamais (lecteur PDF indisponible)
+    setTimeout(hideLoading, 4000);
+  } catch (err) {
+    console.error(err);
+    hideLoading();
+    banner('error', STR.errors.saveFailed);
+  }
 }
 
 async function saveDocument() {
@@ -273,10 +332,15 @@ function wireShortcuts() {
     const mod = e.ctrlKey || e.metaKey;
     const key = e.key.toLowerCase();
 
-    // Ctrl+S doit fonctionner même pendant une saisie (elle est validée d'abord)
+    // Ctrl+S / Ctrl+P fonctionnent même pendant une saisie (validée d'abord)
     if (mod && key === 's') {
       e.preventDefault();
       saveDocument();
+      return;
+    }
+    if (mod && key === 'p') {
+      e.preventDefault();
+      printDocument();
       return;
     }
     // Pendant une saisie : laisser l'édition native (y compris son Ctrl+Z)

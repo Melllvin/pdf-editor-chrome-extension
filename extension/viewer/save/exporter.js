@@ -4,10 +4,60 @@ import {
   PDFDocument,
   StandardFonts,
   rgb,
+  degrees,
   BlendMode,
   LineCapStyle,
 } from '../../vendor/pdf-lib/pdf-lib.esm.min.js';
 import { LINE_HEIGHT_FACTOR, BASELINE_FACTOR } from '../edits/types.js';
+
+/**
+ * Compensation de la rotation de page (/Rotate 90|180|270) : les éditions sont
+ * stockées en espace utilisateur mais pensées « à l'écran » (page affichée
+ * pivotée). On exprime les directions écran (droite, bas) en espace
+ * utilisateur pour que texte et coches restent droits à l'affichage.
+ */
+function screenFrame(page) {
+  const angle = ((page.getRotation().angle % 360) + 360) % 360;
+  switch (angle) {
+    case 90:
+      return { angle, right: [0, 1], down: [1, 0] };
+    case 180:
+      return { angle, right: [-1, 0], down: [0, 1] };
+    case 270:
+      return { angle, right: [0, -1], down: [-1, 0] };
+    default:
+      return { angle: 0, right: [1, 0], down: [0, -1] };
+  }
+}
+
+/**
+ * Coin écran-haut-gauche d'un rect user-space normalisé {x,y,w,h},
+ * selon la rotation de la page.
+ */
+function screenTopLeftOfRect(rect, angle) {
+  switch (angle) {
+    case 90:
+      return [rect.x, rect.y];
+    case 180:
+      return [rect.x + rect.w, rect.y];
+    case 270:
+      return [rect.x + rect.w, rect.y + rect.h];
+    default:
+      return [rect.x, rect.y + rect.h];
+  }
+}
+
+/** Rect user-space normalisé couvrant, à l'écran, w×h depuis topLeft. */
+function rectFromScreenBox(topLeft, w, h, { right, down }) {
+  const x2 = topLeft[0] + right[0] * w + down[0] * h;
+  const y2 = topLeft[1] + right[1] * w + down[1] * h;
+  return {
+    x: Math.min(topLeft[0], x2),
+    y: Math.min(topLeft[1], y2),
+    w: Math.abs(x2 - topLeft[0]),
+    h: Math.abs(y2 - topLeft[1]),
+  };
+}
 
 /**
  * @param {{
@@ -67,31 +117,34 @@ function drawTextEdit(page, edit, font, warnings) {
   const size = edit.fontSize;
   const lineHeight = size * LINE_HEIGHT_FACTOR;
   const lines = edit.text.split('\n').map((l) => sanitizeWinAnsi(l, font, warnings));
-  const firstBaseline = edit.yTop - size * BASELINE_FACTOR;
+  const frame = screenFrame(page);
+  const { right, down } = frame;
+  // (x, yTop) = point user-space du coin écran-haut-gauche de la boîte
+  const topLeft = [edit.x, edit.yTop];
 
   if (edit.whiteBg) {
-    // Reproduit la boîte de l'élément à l'écran : du haut yTop, n lignes de haut
     const maxWidth = Math.max(0, ...lines.map((l) => font.widthOfTextAtSize(l, size)));
     const height = lineHeight * lines.length;
     const pad = 1.2; // équivalent du halo CSS qui déborde du bord des points
-    page.drawRectangle({
-      x: edit.x - pad,
-      y: edit.yTop - height - pad,
-      width: maxWidth + pad * 2,
-      height: height + pad * 2,
-      color: rgb(1, 1, 1),
-    });
+    const padded = [
+      topLeft[0] - right[0] * pad - down[0] * pad,
+      topLeft[1] - right[1] * pad - down[1] * pad,
+    ];
+    const rect = rectFromScreenBox(padded, maxWidth + pad * 2, height + pad * 2, frame);
+    page.drawRectangle({ x: rect.x, y: rect.y, width: rect.w, height: rect.h, color: rgb(1, 1, 1) });
   }
 
   const color = hexToRgb(edit.color);
   lines.forEach((line, i) => {
     if (!line) return;
+    const offset = size * BASELINE_FACTOR + i * lineHeight; // descente écran jusqu'à la ligne de base
     page.drawText(line, {
-      x: edit.x,
-      y: firstBaseline - i * lineHeight,
+      x: topLeft[0] + down[0] * offset,
+      y: topLeft[1] + down[1] * offset,
       size,
       font,
       color,
+      rotate: degrees(frame.angle),
     });
   });
 }
@@ -114,25 +167,32 @@ function sanitizeWinAnsi(text, font, warnings) {
 // ---------- Coche / croix (traits vectoriels : aucun aléa de police) ----------
 
 function drawCheckEdit(page, edit) {
-  const { x, y, size } = edit;
+  const { size } = edit;
   const color = hexToRgb(edit.color);
   const thickness = Math.max(1.4, size * 0.12);
+  const frame = screenFrame(page);
+  const corner = screenTopLeftOfRect({ x: edit.x, y: edit.y, w: size, h: size }, frame.angle);
+  // (sx, sy) = fractions ÉCRAN depuis le haut-gauche → point user-space
+  const pt = (sx, sy) => ({
+    x: corner[0] + frame.right[0] * sx * size + frame.down[0] * sy * size,
+    y: corner[1] + frame.right[1] * sx * size + frame.down[1] * sy * size,
+  });
   const seg = (x1, y1, x2, y2) =>
     page.drawLine({
-      start: { x: x + size * x1, y: y + size * y1 },
-      end: { x: x + size * x2, y: y + size * y2 },
+      start: pt(x1, y1),
+      end: pt(x2, y2),
       thickness,
       color,
       lineCap: LineCapStyle.Round,
     });
   if (edit.glyph === 'cross') {
-    // mêmes proportions que le SVG de l'aperçu (M4 4→16 16 / M16 4→4 16, boîte 20)
-    seg(0.2, 0.8, 0.8, 0.2);
-    seg(0.8, 0.8, 0.2, 0.2);
+    // mêmes proportions que le SVG de l'aperçu (boîte 20 : M4 4→16 16 / M16 4→4 16)
+    seg(0.2, 0.2, 0.8, 0.8);
+    seg(0.8, 0.2, 0.2, 0.8);
   } else {
-    // ✓ : M3 11 L8 16 L17 4 (boîte 20, origine haut) → origine PDF en bas
-    seg(0.15, 0.45, 0.4, 0.2);
-    seg(0.4, 0.2, 0.85, 0.8);
+    // ✓ : M3 11 L8 16 L17 4 (boîte 20, fractions écran haut-gauche)
+    seg(0.15, 0.55, 0.4, 0.8);
+    seg(0.4, 0.8, 0.85, 0.2);
   }
 }
 
