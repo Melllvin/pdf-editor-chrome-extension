@@ -17,7 +17,9 @@ http
   .createServer((req, res) => {
     const pathname = new URL(req.url, `http://127.0.0.1:${PORT}`).pathname;
     const name =
-      pathname === '/sans-extension-pdf' ? 'simple.pdf' : path.basename(pathname);
+      pathname === '/sans-extension-pdf'
+        ? 'simple.pdf'
+        : path.basename(pathname).toLowerCase(); // insensible à la casse (test .PDF)
     const file = path.join(FIXTURES, name);
     if (name && fs.existsSync(file)) {
       res.writeHead(200, {

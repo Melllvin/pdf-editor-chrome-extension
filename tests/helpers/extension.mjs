@@ -24,9 +24,23 @@ export const test = base.extend({
     await context.close();
   },
 
-  extensionId: async ({ context }, use) => {
+  /** Service worker de l'extension, avec API chrome.* garanties disponibles. */
+  sw: async ({ context }, use) => {
     let [sw] = context.serviceWorkers();
     sw ??= await context.waitForEvent('serviceworker');
+    // Juste après la création du worker, les API chrome.* peuvent ne pas être
+    // encore injectées : on attend qu'elles répondent.
+    for (let i = 0; i < 100; i++) {
+      const ready = await sw
+        .evaluate(() => typeof chrome?.declarativeNetRequest?.getDynamicRules === 'function')
+        .catch(() => false);
+      if (ready) break;
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    await use(sw);
+  },
+
+  extensionId: async ({ sw }, use) => {
     await use(new URL(sw.url()).host);
   },
 
