@@ -1,0 +1,19 @@
+{
+  "name": "pdf-editor-chrome-extension",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Éditeur PDF — extension Chrome (MV3) pour afficher, remplir et annoter des PDF directement dans le navigateur",
+  "scripts": {
+    "vendor": "node scripts/vendor.mjs",
+    "icons": "node scripts/make-icons.mjs",
+    "fixtures": "node scripts/make-fixtures.mjs",
+    "pretest": "npm run fixtures",
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1",
+    "pdf-lib": "1.17.1",
+    "pdfjs-dist": "6.1.200"
+  }
+}
