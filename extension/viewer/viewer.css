@@ -130,6 +130,114 @@ body.has-tool-options #viewerContainer { top: calc(var(--toolbar-h) + 34px); }
 .dotZones { z-index: 4; }
 .editLayer { z-index: 5; }
 
+/* ---------- Éditions (overlay) ---------- */
+.edit-box {
+  position: absolute;
+  pointer-events: auto;
+}
+.editLayer .edit-box { cursor: move; }
+
+.edit-text, .edit-fill {
+  font-family: Helvetica, Arial, sans-serif;
+  white-space: pre;
+  min-width: 4px;
+  min-height: 1em;
+  outline: none;
+  caret-color: #1a73e8;
+}
+.edit-text.white-bg, .edit-fill.white-bg {
+  background: #fff;
+  box-shadow: 0 0 0 1.5px #fff; /* léger halo pour couvrir le bord des points */
+}
+.edit-box.editing {
+  outline: 1.5px dashed #1a73e8;
+  cursor: text;
+  min-width: 12px;
+  user-select: text;
+}
+.edit-box.selected { outline: 1.6px solid #1a73e8; }
+.edit-box:not(.editing):hover { outline: 1px solid rgba(26, 115, 232, 0.55); }
+
+.edit-handle {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  background: #1a73e8;
+  border: 1.5px solid #fff;
+  border-radius: 50%;
+  pointer-events: auto;
+}
+.edit-handle.se { right: -7px; bottom: -7px; cursor: nwse-resize; }
+
+.edit-check svg { width: 100%; height: 100%; display: block; }
+.edit-whiteout { background: #fff; }
+body[data-tool="select"] .edit-whiteout:not(.selected):hover {
+  outline: 1px dashed rgba(0, 0, 0, 0.35);
+}
+
+.highlight-rect { position: absolute; mix-blend-mode: multiply; }
+.highlightLayer .edit-box { pointer-events: none; position: static; }
+body[data-tool="select"] .highlightLayer .highlight-rect { pointer-events: auto; cursor: pointer; }
+
+/* Interactions par outil : les objets laissent passer les clics des outils de pose */
+body[data-tool="check"] .editLayer .edit-box,
+body[data-tool="whiteout"] .editLayer .edit-box,
+body[data-tool="dots"] .editLayer .edit-box,
+body[data-tool="highlight"] .editLayer .edit-box {
+  pointer-events: none;
+}
+/* La couche texte ne capte les pointeurs que là où on en a besoin */
+body[data-tool="text"] .textLayer,
+body[data-tool="check"] .textLayer,
+body[data-tool="whiteout"] .textLayer,
+body[data-tool="dots"] .textLayer {
+  pointer-events: none;
+}
+
+body[data-tool="text"] .page { cursor: text; }
+body[data-tool="check"] .page,
+body[data-tool="whiteout"] .page { cursor: crosshair; }
+
+/* Barre d'options : contrôles */
+#toolOptions input[type="number"] {
+  width: 54px;
+  background: #202124;
+  color: var(--tb-fg);
+  border: 1px solid #4a4e52;
+  border-radius: 4px;
+  padding: 3px 5px;
+  font: inherit;
+  font-size: 12.5px;
+}
+.opt-label { color: #bdc1c6; }
+.opt-swatches { display: inline-flex; gap: 6px; align-items: center; }
+.swatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: none;
+  outline: 2px solid transparent;
+  outline-offset: 1.5px;
+  cursor: pointer;
+}
+.swatch.selected { outline-color: #8ab4f8; }
+.opt-check { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; }
+.opt-btn {
+  background: none;
+  border: 1px solid #4a4e52;
+  border-radius: 5px;
+  color: var(--tb-fg);
+  font: inherit;
+  font-size: 12.5px;
+  padding: 3px 10px;
+  cursor: pointer;
+}
+.opt-btn:hover { background: var(--tb-hover); }
+.opt-btn.active { background: var(--tb-active); border-color: transparent; }
+.opt-btn.opt-glyph { font-size: 14px; padding: 2px 9px; }
+.opt-btn.opt-danger { border-color: #b3261e; color: #ff8a80; margin-left: auto; }
+.opt-btn.opt-danger:hover { background: rgba(179, 38, 30, 0.25); }
+
 /* ---------- État vide ---------- */
 #emptyState {
   position: absolute;

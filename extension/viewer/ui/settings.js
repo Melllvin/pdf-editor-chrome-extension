@@ -2,7 +2,8 @@
 const DEFAULTS = {
   interceptPdf: true,
   lastFontSize: 12,
-  lastColor: '#1a1a1a',
+  lastColor: '#000000',
+  lastWhiteBg: false,
   lastHighlightColor: '#ffeb3b',
   lastCheckGlyph: 'check',
 };

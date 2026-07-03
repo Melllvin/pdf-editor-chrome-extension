@@ -156,6 +156,8 @@ export class PageView {
     this.textLayerEl.replaceChildren();
     this.annotationLayerEl.replaceChildren();
     this.dotZonesEl.replaceChildren();
+    this.editLayerEl.replaceChildren();
+    this.highlightLayerEl.replaceChildren();
     this.rendered = false;
   }
 

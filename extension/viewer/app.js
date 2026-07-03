@@ -8,7 +8,7 @@ import {
   LoadError,
 } from './pdf-loader.js';
 import { PageManager } from './page-manager.js';
-import { initToolbar, bindPageManager } from './ui/toolbar.js';
+import { initToolbar, bindPageManager, bindEditing } from './ui/toolbar.js';
 import {
   banner,
   clearBanners,
@@ -17,6 +17,13 @@ import {
   showLoading,
   hideLoading,
 } from './ui/dialogs.js';
+import { getSettings } from './ui/settings.js';
+import { EditStore } from './edits/edit-store.js';
+import { CommandStack } from './edits/commands.js';
+import { Overlay } from './overlay/overlay.js';
+import { ToolManager } from './tools/tool-manager.js';
+import { SelectTool } from './tools/select-tool.js';
+import { TextTool } from './tools/text-tool.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -29,7 +36,46 @@ export const app = {
   sourceUrl: null,
   /** @type {PageManager|null} */
   pageManager: null,
+  /** @type {EditStore|null} */
+  store: null,
+  /** @type {CommandStack|null} */
+  stack: null,
+  /** @type {Overlay|null} */
+  overlay: null,
+  /** @type {ToolManager|null} */
+  toolManager: null,
+  /** réglages chargés au démarrage, mutés en cours de session */
+  settings: null,
 };
+
+function setupEditing() {
+  app.store = new EditStore();
+  app.stack = new CommandStack();
+  app.overlay = new Overlay({
+    store: app.store,
+    stack: app.stack,
+    pageManager: app.pageManager,
+  });
+  app.toolManager = new ToolManager({
+    pagesEl: $('pages'),
+    pageManager: app.pageManager,
+    store: app.store,
+    stack: app.stack,
+    overlay: app.overlay,
+    settings: app.settings,
+  });
+  const toolCtx = {
+    store: app.store,
+    stack: app.stack,
+    overlay: app.overlay,
+    settings: app.settings,
+    pageManager: app.pageManager,
+  };
+  app.toolManager.register('select', new SelectTool(toolCtx));
+  app.toolManager.register('text', new TextTool(toolCtx));
+  app.toolManager.setTool('select');
+  bindEditing({ toolManager: app.toolManager, stack: app.stack });
+}
 
 /**
  * Le paramètre `file` n'est PAS lu via URLSearchParams : la redirection DNR ne
@@ -82,6 +128,7 @@ async function openFromBytes(bytes, fileName, sourceUrl = null) {
     });
     await app.pageManager.init();
     bindPageManager(app.pageManager);
+    setupEditing();
     document.dispatchEvent(new CustomEvent('app:documentopen'));
 
     if (pdfDocument.isPureXfa) banner('warn', STR.banners.xfa);
@@ -163,10 +210,21 @@ function wireFileInputs() {
   });
 }
 
+const TOOL_KEYS = { v: 'select', t: 'text', p: 'dots', c: 'check', s: 'highlight', b: 'whiteout' };
+
+function isTypingTarget(target) {
+  return Boolean(target?.closest?.('input, textarea, select, [contenteditable]'));
+}
+
 function wireShortcuts() {
   window.addEventListener('keydown', (e) => {
     const mod = e.ctrlKey || e.metaKey;
-    if (mod && e.key.toLowerCase() === 'o') {
+    const key = e.key.toLowerCase();
+
+    // Pendant une saisie : laisser l'édition native (y compris son Ctrl+Z)
+    if (isTypingTarget(e.target)) return;
+
+    if (mod && key === 'o') {
       e.preventDefault();
       openPicker();
     } else if (mod && (e.key === '+' || e.key === '=')) {
@@ -178,6 +236,25 @@ function wireShortcuts() {
     } else if (mod && e.key === '0') {
       e.preventDefault();
       app.pageManager?.setZoom(1);
+    } else if (mod && key === 'z' && e.shiftKey) {
+      e.preventDefault();
+      app.stack?.redo();
+    } else if (mod && key === 'z') {
+      e.preventDefault();
+      app.stack?.undo();
+    } else if (mod && key === 'y') {
+      e.preventDefault();
+      app.stack?.redo();
+    } else if (!mod && (e.key === 'Delete' || e.key === 'Backspace')) {
+      if (app.overlay?.selected) {
+        e.preventDefault();
+        app.overlay.deleteSelected();
+      }
+    } else if (e.key === 'Escape') {
+      app.overlay?.deselect();
+      app.toolManager?.setTool('select');
+    } else if (!mod && !e.altKey && TOOL_KEYS[key] && app.toolManager) {
+      app.toolManager.setTool(TOOL_KEYS[key]);
     }
   });
 
@@ -194,7 +271,8 @@ function wireShortcuts() {
   );
 }
 
-function main() {
+async function main() {
+  app.settings = await getSettings();
   initToolbar({ openPicker });
   wireFileInputs();
   wireShortcuts();
