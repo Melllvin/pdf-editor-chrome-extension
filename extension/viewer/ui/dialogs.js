@@ -97,6 +97,49 @@ export function askPassword(isRetry) {
   });
 }
 
+const SHORTCUTS = [
+  ['Ctrl+O', 'Ouvrir un fichier'],
+  ['Ctrl+S', 'Enregistrer le PDF modifié'],
+  ['Ctrl+P', 'Imprimer'],
+  ['Ctrl+Z / Ctrl+Y', 'Annuler / Rétablir'],
+  ['Suppr', 'Supprimer la sélection'],
+  ['Échap', 'Désélectionner, revenir à l’outil Sélection'],
+  ['V · T · P · C · S · B', 'Sélection · Texte · Pointillés · Cocher · Surligner · Blanco'],
+  ['Ctrl+molette, Ctrl+ + / − / 0', 'Zoom'],
+  ['Double-clic sur un texte', 'Modifier le texte'],
+];
+
+/** Dialogue listant les raccourcis clavier. */
+export function showShortcuts() {
+  const dlg = document.createElement('dialog');
+  const h = document.createElement('h2');
+  h.textContent = 'Raccourcis clavier';
+  const table = document.createElement('table');
+  table.className = 'shortcuts';
+  for (const [keys, label] of SHORTCUTS) {
+    const tr = document.createElement('tr');
+    const td1 = document.createElement('td');
+    const kbd = document.createElement('kbd');
+    kbd.textContent = keys;
+    td1.append(kbd);
+    const td2 = document.createElement('td');
+    td2.textContent = label;
+    tr.append(td1, td2);
+    table.append(tr);
+  }
+  const actions = document.createElement('div');
+  actions.className = 'dlg-actions';
+  const ok = document.createElement('button');
+  ok.className = 'primary';
+  ok.textContent = 'Fermer';
+  ok.addEventListener('click', () => dlg.close());
+  actions.append(ok);
+  dlg.append(h, table, actions);
+  dlg.addEventListener('close', () => dlg.remove());
+  document.body.append(dlg);
+  dlg.showModal();
+}
+
 export function showLoading(text = STR.loading) {
   document.getElementById('loadingText').textContent = text;
   document.getElementById('loading').hidden = false;

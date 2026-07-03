@@ -95,6 +95,40 @@ html, body {
   user-select: none;
 }
 
+/* Menu ⋯ */
+#menuDropdown {
+  position: fixed;
+  top: calc(var(--toolbar-h) - 4px);
+  right: 8px;
+  background: #2b2f33;
+  color: var(--tb-fg);
+  border: 1px solid #4a4e52;
+  border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
+  padding: 6px;
+  z-index: 80;
+  min-width: 280px;
+}
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  color: var(--tb-fg);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+.menu-item:hover { background: var(--tb-hover); }
+.menu-item:disabled { color: var(--tb-fg-dim); cursor: default; background: none; }
+.menu-sep { height: 1px; background: #4a4e52; margin: 5px 8px; }
+.menu-toggle input { accent-color: var(--accent); }
+
 /* ---------- Zone d'affichage ---------- */
 #viewerContainer {
   position: absolute;
@@ -434,3 +468,14 @@ dialog .dlg-actions button {
   background: #e8eaed;
 }
 dialog .dlg-actions button.primary { background: var(--accent); color: #fff; font-weight: 600; }
+dialog table.shortcuts { border-collapse: collapse; font-size: 13.5px; }
+dialog table.shortcuts td { padding: 5px 14px 5px 0; color: #333; }
+dialog table.shortcuts kbd {
+  background: #f1f3f4;
+  border: 1px solid #dadce0;
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  padding: 2px 7px;
+  font-size: 12px;
+  white-space: nowrap;
+}

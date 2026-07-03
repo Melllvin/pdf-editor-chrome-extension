@@ -16,8 +16,9 @@ import {
   askPassword,
   showLoading,
   hideLoading,
+  showShortcuts,
 } from './ui/dialogs.js';
-import { getSettings } from './ui/settings.js';
+import { getSettings, setSetting } from './ui/settings.js';
 import { EditStore } from './edits/edit-store.js';
 import { CommandStack } from './edits/commands.js';
 import { Overlay } from './overlay/overlay.js';
@@ -393,11 +394,48 @@ function wireShortcuts() {
   );
 }
 
+function wireMenu() {
+  const dropdown = $('menuDropdown');
+  const interceptBox = $('menuIntercept');
+  interceptBox.checked = Boolean(app.settings.interceptPdf);
+
+  $('btnMenu').addEventListener('click', (e) => {
+    e.stopPropagation();
+    dropdown.hidden = !dropdown.hidden;
+  });
+  window.addEventListener('click', (e) => {
+    if (!dropdown.hidden && !dropdown.contains(e.target)) dropdown.hidden = true;
+  });
+
+  $('menuOriginal').addEventListener('click', () => {
+    if (app.originalBytes) download(app.originalBytes, app.fileName);
+    dropdown.hidden = true;
+  });
+  $('menuShortcuts').addEventListener('click', () => {
+    dropdown.hidden = true;
+    showShortcuts();
+  });
+  interceptBox.addEventListener('change', () => {
+    app.settings.interceptPdf = interceptBox.checked;
+    setSetting('interceptPdf', interceptBox.checked); // le service worker réagit
+    toast(
+      interceptBox.checked
+        ? 'Les PDF ouvriront automatiquement dans l’éditeur.'
+        : 'Ouverture automatique désactivée — utilisez le bouton de l’extension.',
+    );
+  });
+
+  document.addEventListener('app:documentopen', () => {
+    $('menuOriginal').disabled = false;
+  });
+}
+
 async function main() {
   app.settings = await getSettings();
   initToolbar({ openPicker });
   wireFileInputs();
   wireShortcuts();
+  wireMenu();
 
   window.addEventListener('beforeunload', (e) => {
     if (app.stack?.dirty || hasFormChanges(app.pdfDocument)) {
