@@ -32,6 +32,9 @@ export const STR = {
     passwordCanceled: 'Ouverture annulée : ce PDF nécessite un mot de passe.',
     badScheme: 'Cette adresse ne peut pas être ouverte par l’éditeur.',
     generic: 'Une erreur est survenue lors du chargement du document.',
+    saveFailed:
+      'L’enregistrement a échoué. Ce PDF est peut-être protégé ou endommagé — ' +
+      'vous pouvez toujours télécharger l’original.',
   },
 
   banners: {

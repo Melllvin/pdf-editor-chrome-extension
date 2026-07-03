@@ -160,14 +160,8 @@ function commitMove(edit, ctx, dx, dy, { startLeft, startTop }) {
   const { viewport } = ctx.view;
   if (edit.type === 'text' || edit.type === 'fill') {
     const [x, yTop] = viewport.convertToPdfPoint(startLeft + dx, startTop + dy);
-    const before = { x: edit.x, yTop: edit.yTop, baselineY: edit.baselineY };
-    // Le déplacement invalide l'ancrage à la ligne de base des pointillés :
-    // on le remplace par un décalage équivalent pour préserver l'apparence.
-    const after = {
-      x,
-      yTop,
-      baselineY: edit.baselineY === null ? null : edit.baselineY + (yTop - edit.yTop),
-    };
+    const before = { x: edit.x, yTop: edit.yTop };
+    const after = { x, yTop };
     ctx.store.update(edit.id, after);
     ctx.stack.pushApplied(new UpdateEditCommand(ctx.store, edit.id, before, after));
   } else {
@@ -304,7 +298,9 @@ export function startInlineEdit(el, edit, ctx, { isNew = false } = {}) {
   };
 
   const onKey = (ev) => {
-    ev.stopPropagation(); // ne pas déclencher les raccourcis globaux en tapant
+    const mod = ev.ctrlKey || ev.metaKey;
+    if (mod && ['s', 'p'].includes(ev.key.toLowerCase())) return; // Ctrl+S/P restent globaux
+    ev.stopPropagation(); // ne pas déclencher les autres raccourcis en tapant
     if (ev.key === 'Escape') {
       ev.preventDefault();
       el.blur();

@@ -24,6 +24,7 @@ import { Overlay } from './overlay/overlay.js';
 import { ToolManager } from './tools/tool-manager.js';
 import { SelectTool } from './tools/select-tool.js';
 import { TextTool } from './tools/text-tool.js';
+import { exportPdf, download, suggestName } from './save/exporter.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -75,6 +76,38 @@ function setupEditing() {
   app.toolManager.register('text', new TextTool(toolCtx));
   app.toolManager.setTool('select');
   bindEditing({ toolManager: app.toolManager, stack: app.stack });
+
+  const saveBtn = $('btnSave');
+  saveBtn.disabled = false;
+  saveBtn.onclick = saveDocument;
+}
+
+/** Collecte des valeurs AcroForm — branché au jalon M8. */
+function collectFormValues() {
+  return [];
+}
+
+async function saveDocument() {
+  if (!app.pdfDocument || !app.originalBytes) return;
+  // Valide une éventuelle saisie en cours pour l'inclure dans l'export
+  document.querySelector('.edit-box.editing')?.blur();
+  showLoading(STR.saving);
+  try {
+    const { bytes, warnings } = await exportPdf({
+      originalBytes: app.originalBytes,
+      edits: app.store.all(),
+      formValues: collectFormValues(),
+    });
+    download(bytes, suggestName(app.fileName));
+    app.stack.markSaved();
+    toast(STR.toasts.saved);
+    if (warnings.has('charReplaced')) toast(STR.toasts.charReplaced);
+  } catch (err) {
+    console.error(err);
+    banner('error', STR.errors.saveFailed);
+  } finally {
+    hideLoading();
+  }
 }
 
 /**
@@ -221,6 +254,12 @@ function wireShortcuts() {
     const mod = e.ctrlKey || e.metaKey;
     const key = e.key.toLowerCase();
 
+    // Ctrl+S doit fonctionner même pendant une saisie (elle est validée d'abord)
+    if (mod && key === 's') {
+      e.preventDefault();
+      saveDocument();
+      return;
+    }
     // Pendant une saisie : laisser l'édition native (y compris son Ctrl+Z)
     if (isTypingTarget(e.target)) return;
 
@@ -276,6 +315,13 @@ async function main() {
   initToolbar({ openPicker });
   wireFileInputs();
   wireShortcuts();
+
+  window.addEventListener('beforeunload', (e) => {
+    if (app.stack?.dirty) {
+      e.preventDefault();
+      e.returnValue = STR.confirmLeave;
+    }
+  });
 
   const src = parseFileParam();
   if (src && isAllowedUrl(src)) {

@@ -6,8 +6,8 @@ const genId = () => `edit-${++counter}-${Date.now().toString(36)}`;
 
 /**
  * Texte libre. Ancré par son coin HAUT-gauche (x, yTop) en espace PDF.
- * `baselineY` (optionnel) force la ligne de base de la première ligne —
- * utilisé par le remplissage des pointillés pour poser le texte sur la ligne.
+ * La ligne de base de la première ligne est à yTop − fontSize × BASELINE_FACTOR,
+ * à l'écran comme à l'export.
  */
 export function makeTextEdit({
   pageIndex,
@@ -17,9 +17,8 @@ export function makeTextEdit({
   fontSize = 12,
   color = '#000000',
   whiteBg = false,
-  baselineY = null,
 }) {
-  return { id: genId(), type: 'text', pageIndex, x, yTop, text, fontSize, color, whiteBg, baselineY };
+  return { id: genId(), type: 'text', pageIndex, x, yTop, text, fontSize, color, whiteBg };
 }
 
 /** Remplissage d'une ligne pointillée : un texte à fond blanc posé sur la ligne. */
@@ -44,5 +43,11 @@ export function makeWhiteoutEdit({ pageIndex, x, y, w, h }) {
 
 /** Hauteur d'interligne du texte incrusté (partagé écran / export). */
 export const LINE_HEIGHT_FACTOR = 1.2;
-/** Part de la taille de police au-dessus de la ligne de base (approx. Helvetica). */
-export const ASCENT_FACTOR = 0.8;
+/**
+ * Distance entre le HAUT de la boîte de texte et la ligne de base de la
+ * première ligne, en parts de la taille de police. Reproduit le placement CSS
+ * (Arial/Liberation : ascendante hhea ≈ 0,905 em, descendante ≈ 0,212 em,
+ * demi-interlignage avec line-height 1,2) pour que l'incrustation pdf-lib
+ * tombe exactement où l'aperçu affichait le texte.
+ */
+export const BASELINE_FACTOR = (LINE_HEIGHT_FACTOR - (0.905 + 0.212)) / 2 + 0.905;
