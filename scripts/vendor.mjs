@@ -9,11 +9,14 @@ const nm = path.join(root, 'node_modules');
 const out = path.join(root, 'extension', 'vendor');
 
 // [source relative à node_modules, destination relative à extension/vendor]
+// Build « legacy » : inclut les polyfills (core-js) requis pour Chrome 128+ ;
+// le build moderne de pdfjs-dist 6.x exige des API JS plus récentes (ex.
+// Map.prototype.getOrInsertComputed, absent de Chromium 141).
 const COPIES = [
-  ['pdfjs-dist/build/pdf.mjs', 'pdfjs/pdf.mjs'],
-  ['pdfjs-dist/build/pdf.worker.mjs', 'pdfjs/pdf.worker.mjs'],
-  ['pdfjs-dist/web/pdf_viewer.css', 'pdfjs/pdf_viewer.css'],
-  ['pdfjs-dist/web/images', 'pdfjs/images'],
+  ['pdfjs-dist/legacy/build/pdf.mjs', 'pdfjs/pdf.mjs'],
+  ['pdfjs-dist/legacy/build/pdf.worker.mjs', 'pdfjs/pdf.worker.mjs'],
+  ['pdfjs-dist/legacy/web/pdf_viewer.css', 'pdfjs/pdf_viewer.css'],
+  ['pdfjs-dist/legacy/web/images', 'pdfjs/images'],
   ['pdfjs-dist/cmaps', 'pdfjs/cmaps'],
   ['pdfjs-dist/standard_fonts', 'pdfjs/standard_fonts'],
   ['pdfjs-dist/iccs', 'pdfjs/iccs'],

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Éditeur PDF</title>
+  <link rel="icon" href="../icons/icon32.png">
+  <link rel="stylesheet" href="../vendor/pdfjs/pdf_viewer.css">
+  <link rel="stylesheet" href="viewer.css">
+</head>
+<body>
+  <header id="toolbar">
+    <div class="tb-group">
+      <button id="btnOpen" class="tb-btn" title="Ouvrir un fichier (Ctrl+O)">
+        <span class="tb-ico">&#128194;</span><span class="tb-label">Ouvrir</span>
+      </button>
+    </div>
+
+    <div class="tb-sep"></div>
+
+    <div class="tb-group" id="toolGroup" hidden>
+      <!-- Outils d'édition : activés au fil des jalons (M5+) -->
+    </div>
+
+    <div class="tb-spacer"></div>
+
+    <div class="tb-group" id="navGroup">
+      <button id="btnPrev" class="tb-btn tb-icon-only" title="Page précédente">&#8249;</button>
+      <span class="tb-pagenum">
+        <input id="pageInput" type="number" min="1" value="1" disabled>
+        <span class="tb-dim">/</span>
+        <span id="pageCount">–</span>
+      </span>
+      <button id="btnNext" class="tb-btn tb-icon-only" title="Page suivante">&#8250;</button>
+    </div>
+
+    <div class="tb-sep"></div>
+
+    <div class="tb-group" id="zoomGroup">
+      <button id="btnZoomOut" class="tb-btn tb-icon-only" title="Zoom arrière (Ctrl+-)">&#8722;</button>
+      <button id="zoomLabel" class="tb-btn tb-zoom-label" title="Réinitialiser le zoom (Ctrl+0)">100&nbsp;%</button>
+      <button id="btnZoomIn" class="tb-btn tb-icon-only" title="Zoom avant (Ctrl++)">+</button>
+      <button id="btnFitWidth" class="tb-btn tb-icon-only" title="Ajuster à la largeur">&#8596;</button>
+    </div>
+
+    <div class="tb-spacer"></div>
+
+    <div class="tb-group" id="actionsGroup">
+      <button id="btnUndo" class="tb-btn tb-icon-only" title="Annuler (Ctrl+Z)" disabled>&#8630;</button>
+      <button id="btnRedo" class="tb-btn tb-icon-only" title="Rétablir (Ctrl+Y)" disabled>&#8631;</button>
+      <button id="btnPrint" class="tb-btn tb-icon-only" title="Imprimer (Ctrl+P)" disabled>&#128424;</button>
+      <button id="btnSave" class="tb-btn tb-primary" title="Enregistrer le PDF modifié (Ctrl+S)" disabled>
+        <span class="tb-label">Enregistrer</span>
+      </button>
+      <button id="btnMenu" class="tb-btn tb-icon-only" title="Plus d'options">&#8943;</button>
+    </div>
+  </header>
+
+  <div id="toolOptions" hidden></div>
+  <div id="banners"></div>
+
+  <main id="viewerContainer" tabindex="0">
+    <div id="emptyState">
+      <div class="empty-card">
+        <img src="../icons/icon128.png" alt="" width="72" height="72">
+        <h1>Éditeur PDF</h1>
+        <p>Déposez votre PDF ici, ou&nbsp;:</p>
+        <button id="btnEmptyOpen" class="big-btn">Choisir un fichier</button>
+        <p class="empty-hint">Les PDF ouverts dans Chrome s'afficheront automatiquement ici.</p>
+      </div>
+    </div>
+    <div id="pages" class="pdfViewer" hidden></div>
+    <div id="dropHint" hidden><div class="drop-card">Déposez le fichier pour l'ouvrir</div></div>
+  </main>
+
+  <div id="loading" hidden><div class="spinner"></div><p id="loadingText">Chargement du document…</p></div>
+  <div id="toasts"></div>
+
+  <input type="file" id="filePicker" accept="application/pdf,.pdf" hidden>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
