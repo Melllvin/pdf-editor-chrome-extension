@@ -198,6 +198,22 @@ body[data-tool="select"] .edit-whiteout:not(.selected):hover {
   background: rgba(255, 235, 59, 0.35);
 }
 .rubber-band.rubber-whiteout { background: rgba(255, 255, 255, 0.85); }
+
+/* Zones pointillées cliquables (outil Pointillés) */
+.dot-zone {
+  position: absolute;
+  pointer-events: none;
+  cursor: text;
+  border-radius: 3px;
+  outline: 1.5px dashed rgba(26, 115, 232, 0.45);
+  outline-offset: 1px;
+}
+body[data-tool="dots"] .dot-zone { pointer-events: auto; }
+.dot-zone:hover {
+  outline-color: #1a73e8;
+  background: rgba(26, 115, 232, 0.07);
+}
+body[data-tool="dots"] .page { cursor: default; }
 .highlightLayer .edit-box { pointer-events: none; position: static; }
 .highlightLayer .highlight-rect { pointer-events: none; }
 body[data-tool="select"] .highlightLayer .highlight-rect { pointer-events: auto; cursor: pointer; }

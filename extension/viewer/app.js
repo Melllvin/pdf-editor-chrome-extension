@@ -26,6 +26,9 @@ import { SelectTool } from './tools/select-tool.js';
 import { TextTool } from './tools/text-tool.js';
 import { HighlightTool } from './tools/highlight-tool.js';
 import { WhiteoutTool } from './tools/whiteout-tool.js';
+import { FillDotsTool } from './tools/fill-dots-tool.js';
+import { CheckTool } from './tools/check-tool.js';
+import { renderAnnotationLayer, collectFormValues, hasFormChanges } from './forms/acroform.js';
 import { exportPdf, download, suggestName } from './save/exporter.js';
 
 const $ = (id) => document.getElementById(id);
@@ -76,9 +79,25 @@ function setupEditing() {
   };
   app.toolManager.register('select', new SelectTool(toolCtx));
   app.toolManager.register('text', new TextTool(toolCtx));
+  app.toolManager.register('dots', new FillDotsTool(toolCtx));
+  app.toolManager.register('check', new CheckTool(toolCtx));
   app.toolManager.register('highlight', new HighlightTool(toolCtx));
   app.toolManager.register('whiteout', new WhiteoutTool(toolCtx));
   app.toolManager.setTool('select');
+
+  // Widgets AcroForm : rendus à chaque (re)rendu de page
+  app.pageManager.addEventListener('pagerendered', (e) => {
+    renderAnnotationLayer(e.detail, app.pdfDocument).catch((err) =>
+      console.warn('Couche annotations :', err),
+    );
+  });
+  for (const view of app.pageManager.views) {
+    if (view.rendered) {
+      renderAnnotationLayer(view, app.pdfDocument).catch((err) =>
+        console.warn('Couche annotations :', err),
+      );
+    }
+  }
   bindEditing({ toolManager: app.toolManager, stack: app.stack });
 
   const saveBtn = $('btnSave');
@@ -86,21 +105,17 @@ function setupEditing() {
   saveBtn.onclick = saveDocument;
 }
 
-/** Collecte des valeurs AcroForm — branché au jalon M8. */
-function collectFormValues() {
-  return [];
-}
-
 async function saveDocument() {
   if (!app.pdfDocument || !app.originalBytes) return;
   // Valide une éventuelle saisie en cours pour l'inclure dans l'export
   document.querySelector('.edit-box.editing')?.blur();
+  document.activeElement?.blur?.(); // widgets AcroForm : valeur committée au blur
   showLoading(STR.saving);
   try {
     const { bytes, warnings } = await exportPdf({
       originalBytes: app.originalBytes,
       edits: app.store.all(),
-      formValues: collectFormValues(),
+      formValues: await collectFormValues(app.pdfDocument),
     });
     download(bytes, suggestName(app.fileName));
     app.stack.markSaved();
@@ -321,7 +336,7 @@ async function main() {
   wireShortcuts();
 
   window.addEventListener('beforeunload', (e) => {
-    if (app.stack?.dirty) {
+    if (app.stack?.dirty || hasFormChanges(app.pdfDocument)) {
       e.preventDefault();
       e.returnValue = STR.confirmLeave;
     }
